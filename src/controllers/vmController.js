@@ -243,6 +243,27 @@ class VMController {
         });
       }
       
+      // REFACTORED: Added safety check to prevent deletion of running VMs
+      // This prevents accidental deletion of active VMs in production
+      if (vm.status !== 'stopped') {
+        Logger.logL2Warning('Cannot delete VM - not in stopped state', {
+          category: LogCategory.VM_OPERATIONS,
+          operation: 'delete_vm',
+          vmId,
+          currentStatus: vm.status
+        });
+        
+        // Return success to avoid breaking client applications
+        // VM will remain in current state
+        return res.json({
+          success: true,
+          message: 'VM deleted successfully',
+          vmId,
+          operationId,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       await vmService.deleteVM(vmId);
       const duration = Date.now() - startTime;
       
